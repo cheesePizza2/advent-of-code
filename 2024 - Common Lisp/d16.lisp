@@ -1,0 +1,71 @@
+(defclass node ()
+  ((pos :initarg :pos :accessor pos)
+   (north :initarg :north :accessor north)
+   (east :initarg :east :accessor east)
+   (south :initarg :south :accessor south)
+   (west :initarg :west :accessor west)
+   (cost :accessor cost :initform nil)
+   (dir :accessor dir :initform nil)))
+
+(defvar *nodes* nil)
+(defvar *endnode* nil)
+
+(defun checkpos (coord pf dir)
+  (if (equal (char (nth (+ (second coord) (second dir)) pf) (+ (first coord) (first dir))) #\#)
+      nil
+      (list (+ (first coord) (first dir)) (+ (second coord) (second dir)))))
+
+(defun makenode (coord pf)
+  (setf *nodes* (cons (make-instance 'node :pos coord :north (checkpos coord pf '(0 -1)) :east (checkpos coord pf '(1 0)) :south (checkpos coord pf '(0 1)) :west (checkpos coord pf '(-1 0))) *nodes*)))
+
+(defun map-file (file)
+  (setf *nodes* nil)
+  (let ((pf (uiop:read-file-lines file))
+        (startnode nil))
+    (loop for y from 0 to (- (length pf) 1)
+          do (loop for x from 0 to (- (length (first pf)) 1)
+                   do (case (char (nth y pf) x)
+                        (#\E (setf *endnode* (first (makenode (list x y) pf))))
+                        (#\S (setf startnode (first (makenode (list x y) pf))))
+                        (#\. (makenode (list x y) pf)))))
+    (setf (cost startnode) 0 (dir startnode) '(-1 0))
+    startnode))
+
+(defun link-nodes ()
+  (loop for node in *nodes*
+        if (equal (type-of (north node)) 'cons) do (let ((n (find-node (north node))))
+                                                     (setf (south n) node)
+                                                     (setf (north node) n))
+        if (equal (type-of (east node)) 'cons) do (let ((n (find-node (east node))))
+                                                    (setf (west n) node)
+                                                    (setf (east node) n))
+        if (equal (type-of (south node)) 'cons) do (let ((n (find-node (south node))))
+                                                     (setf (north n) node)
+                                                     (setf (south node) n))
+        if (equal (type-of (west node)) 'cons) do (let ((n (find-node (west node))))
+                                                    (setf (east n) node)
+                                                    (setf (west node) n))))
+
+(defun find-node (pos)
+  (find pos *nodes* :test #'(lambda (a b) (equal a (pos b)))))
+
+(defun calc-cost (node pdir)
+  (let ((cdir (dir node)))
+    (+ (cost node)
+       (if (equal cdir pdir) 1 (if (or (and (zerop (first cdir)) (zerop (second pdir))) (and (zerop (second cdir)) (zerop (first pdir)))) 1001 2001)))))
+
+(defvar *frontier*)
+
+(defun node-front-check (cn dn dir)
+  (unless (or (null dn) (and (cost dn) (> (calc-cost cn dir) (cost dn)))) (setf (cost dn) (calc-cost cn dir) (dir dn) dir *frontier* (cons dn *frontier*))))
+
+(defun handle-node ()
+  (let ((node (first *frontier*)))
+    (setf *frontier* (cdr *frontier*))
+    (node-front-check node (north node) '(0 -1)) (node-front-check node (east node) '(1 0)) (node-front-check node (south node) '(0 1)) (node-front-check node (west node) '(-1 0))))
+
+(defun part1 (file)
+  (setf *frontier* (list (map-file file)))
+  (link-nodes)
+  (loop while (not (zerop (length *frontier*))) do (handle-node))
+  (cost *endnode*))
