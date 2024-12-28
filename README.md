@@ -3,6 +3,6 @@ This repository contains my (personal) solutions to the [Advent of Code](https:/
 
 ## Current List
 
-2024 - Common Lisp - 31/50 (private until January 1st)
+[2024 - Common Lisp - 32/50](https://github.com/cheesePizza2/advent-of-code/tree/main/2024%20-%20Common%20Lisp)
 
 [2019 - C - 18/50](https://github.com/cheesePizza2/advent-of-code/tree/main/2019%20-%20C)
